@@ -31,43 +31,56 @@ def check_win(spin, lines, bet):
 # Streamlit app
 st.title("🎰 Slot Machine Game")
 
-# Initial session state
+# Initialize session state
 if "balance" not in st.session_state:
-    st.session_state.balance = st.number_input("💰 Enter deposit amount to start:", min_value=1, max_value=100000, step=10)
+    st.session_state.balance = 0
+    st.session_state.deposited = False
 
-st.markdown(f"### Current Balance: ${st.session_state.balance}")
+# Step 1: Deposit form
+if not st.session_state.deposited:
+    with st.form("deposit_form"):
+        deposit = st.number_input("💰 Enter deposit amount to start:", min_value=1, max_value=100000, step=10)
+        deposit_btn = st.form_submit_button("💳 Confirm Deposit")
+        if deposit_btn:
+            st.session_state.balance = deposit
+            st.session_state.deposited = True
+            st.rerun()
 
-with st.form("bet_form"):
-    lines = st.slider("🎯 Lines to bet on", min_value=1, max_value=MAX_LINES, value=1)
-    bet = st.slider("💵 Bet per line", min_value=MIN_BET, max_value=MAX_BET, value=10)
-    submitted = st.form_submit_button("🎲 Spin the Slot Machine")
+# Step 2: Show game once deposited
+if st.session_state.deposited:
+    st.markdown(f"### Current Balance: ${st.session_state.balance}")
 
-if submitted:
-    total_bet = lines * bet
-    if total_bet > st.session_state.balance:
-        st.error("❌ Not enough balance!")
-    else:
-        st.session_state.balance -= total_bet
-        spin = get_spin(ROWS, COLS, symbols)
+    with st.form("bet_form"):
+        lines = st.slider("🎯 Lines to bet on", min_value=1, max_value=MAX_LINES, value=1)
+        bet = st.slider("💵 Bet per line", min_value=MIN_BET, max_value=MAX_BET, value=10)
+        submitted = st.form_submit_button("🎲 Spin the Slot Machine")
 
-        st.write("### 🎰 Slot Result:")
-        for row in spin:
-            st.write(" | ".join(row))
-
-        win, win_lines = check_win(spin, lines, bet)
-        st.session_state.balance += win
-
-        st.success(f"🏆 You won ${win}!")
-
-        if win_lines:
-            st.info(f"✨ Winning lines: {', '.join(map(str, win_lines))}")
+    if submitted:
+        total_bet = lines * bet
+        if total_bet > st.session_state.balance:
+            st.error("❌ Not enough balance!")
         else:
-            st.info("😢 No wins this time.")
+            st.session_state.balance -= total_bet
+            spin = get_spin(ROWS, COLS, symbols)
 
-        st.markdown(f"### 💳 Updated Balance: ${st.session_state.balance}")
+            st.write("### 🎰 Slot Result:")
+            for row in spin:
+                st.write(" | ".join(row))
 
-# Option to reset
-if st.button("🔄 Reset Game"):
-    del st.session_state.balance
-    st.rerun()
+            win, win_lines = check_win(spin, lines, bet)
+            st.session_state.balance += win
 
+            st.success(f"🏆 You won ${win}!")
+
+            if win_lines:
+                st.info(f"✨ Winning lines: {', '.join(map(str, win_lines))}")
+            else:
+                st.info("😢 No wins this time.")
+
+            st.markdown(f"### 💳 Updated Balance: ${st.session_state.balance}")
+
+    if st.button("🔄 Reset Game"):
+        for key in ["balance", "deposited"]:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
